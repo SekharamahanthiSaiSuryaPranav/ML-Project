@@ -1,0 +1,81 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+import joblib
+
+# Load the dataset
+df = pd.read_csv('car details v4.csv')
+
+# 1. Data Cleaning and Preprocessing
+df['Engine'] = df['Engine'].str.replace(' cc', '').astype(float)
+df['Max Power'] = df['Max Power'].str.extract('(\d+\.?\d*)').astype(float)
+df['Max Torque'] = df['Max Torque'].str.extract('(\d+\.?\d*)').astype(float)
+
+numeric_columns = ['Engine', 'Max Power', 'Max Torque', 'Length', 'Width', 'Height', 'Seating Capacity', 'Fuel Tank Capacity']
+df[numeric_columns] = df[numeric_columns].fillna(df[numeric_columns].mean())
+
+df['Drivetrain'] = df['Drivetrain'].fillna(df['Drivetrain'].mode()[0])
+
+# Convert categorical variables into dummy/indicator variables (One-Hot Encoding)
+df = pd.get_dummies(df, drop_first=True)
+
+# Split the data into features (X) and the target (y)
+X = df.drop('Price', axis=1)
+y = df['Price']
+
+# Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train the Random Forest model
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Save the model
+joblib.dump(model, 'car_price_predictor_model.pkl')
+
+# Function to preprocess user input and predict price
+def predict_price(year, make, model_name, kilometer, engine, max_power, fuel_type, transmission, seating_capacity):
+    # Create a dictionary for the input
+    user_data = {
+        'Year': year,
+        'Make': make,
+        'Model': model_name,
+        'Kilometer': kilometer,
+        'Engine': engine,
+        'Max Power': max_power,
+        'Fuel Type': fuel_type,
+        'Transmission': transmission,
+        'Seating Capacity': seating_capacity
+    }
+    
+    # Convert the input data to a DataFrame
+    user_df = pd.DataFrame([user_data])
+    
+    # Apply the same preprocessing as the training data (e.g., One-Hot Encoding)
+    user_df = pd.get_dummies(user_df)
+    
+    # Align the user input DataFrame with the model's training DataFrame
+    user_df = user_df.reindex(columns=X.columns, fill_value=0)
+    
+    # Load the saved model
+    loaded_model = joblib.load('car_price_predictor_model.pkl')
+    
+    # Predict the price
+    predicted_price = loaded_model.predict(user_df)
+    
+    return predicted_price[0]
+
+# Example usage of the function:
+year = int(input("Enter the Year: "))
+make = input("Enter the Make: ")
+model_name = input("Enter the Model: ")
+kilometer = int(input("Enter the Kilometers Driven: "))
+engine = float(input("Enter the Engine Capacity (cc): "))
+max_power = float(input("Enter the Max Power (bhp): "))
+fuel_type = input("Enter the Fuel Type (Petrol/Diesel): ")
+transmission = input("Enter the Transmission Type (Manual/Automatic): ")
+seating_capacity = int(input("Enter the Seating Capacity: "))
+
+predicted_price = predict_price(year, make, model_name, kilometer, engine, max_power, fuel_type, transmission, seating_capacity)
+print(f"The predicted price of the car is: {predicted_price}")
