@@ -5,7 +5,7 @@ import joblib
 import streamlit as st
 
 # Load your dataset
-data = pd.read_csv(r'C:\Users\srivi\Downloads\car file\car details v4.csv')
+data = pd.read_csv('car details v4.csv')
 
 # Feature Engineering: Age of the car
 data['Car_Age'] = 2024 - data['Year']  # Assuming current year is 2024
